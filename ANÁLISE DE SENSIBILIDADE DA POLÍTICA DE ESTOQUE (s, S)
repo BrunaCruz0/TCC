@@ -1,0 +1,639 @@
+---
+lang: pt-BR
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: false
+    toc: false
+    
+fontsize: 12pt
+geometry: "left=3cm,right=2cm,top=3cm,bottom=2cm"
+mainfont: "Times New Roman"
+
+csl: abnt.csl
+bibliography: bibliografia.bib
+
+header-includes:
+  - \usepackage{indentfirst}      
+  - \usepackage{setspace}          
+  - \setlength{\parindent}{1.25cm} # Define o recuo ABNT (1,25 cm)
+  - \setlength{\parskip}{0cm}      # Remove espaço extra entre parágrafos (ABNT padrão)
+---
+
+\begin{titlepage}
+    \centering
+    
+    % --- CABEÇALHO (Instituição) ---
+    {\large \textbf{UNIVERSIDADE FEDERAL DE JUIZ DE FORA}} \par
+    \vspace{0.1cm}
+    {\large INSTITUTO DE CIÊNCIAS EXATAS} \par % Ajuste se for outro Instituto
+    \vspace{0.1cm}
+    {\large CURSO DE CIÊNCIAS EXATAS} \par
+    \vspace{3cm}
+    
+    % --- AUTOR E DADOS ---
+    {\Large \textbf{BRUNA CRUZ SIQUEIRA}} \par
+    \vspace{0.2cm}
+    {\large Matrícula: 202165012AD} \par
+    \vspace{3cm}
+    
+    % --- TÍTULO DO TRABALHO ---
+    {\Huge \textbf{ANÁLISE DE SENSIBILIDADE DA POLÍTICA DE ESTOQUE ($s, S$) SOB DEMANDA POISSON}} \par
+    \vspace{0.5cm}
+    {\Large Uma abordagem via Simulação de Monte Carlo} \par
+    \vspace{2cm}
+    
+    % --- DADOS ESPECÍFICOS (Segundo Ciclo e Orientador) ---
+    \begin{flushright}
+        \begin{minipage}{0.6\textwidth}
+            \small
+            \textbf{Opção de 2º Ciclo:} Estatística \par
+            \vspace{0.2cm}
+            \textbf{Orientador:} Lupércio F. Bessegato
+        \end{minipage}
+    \end{flushright}
+    
+    \vfill
+    
+    % --- RODAPÉ ---
+    {\large Juiz de Fora - MG} \par
+    {\large 2025}
+\end{titlepage}
+
+
+## 1 Introdução
+
+O gerenciamento de estoques é essencial para a administração de operações e logística, pois afeta diretamente o nível de serviço, a disponibilidade de produtos e o custo total da cadeia de suprimentos. Em ambientes sujeitos à incerteza, a demanda dificilmente é constante ou totalmente previsível, o que torna modelos determinísticos incapazes de representar adequadamente a dinâmica real dos sistemas. Por isso, abordagens estocásticas tornam-se indispensáveis para lidar com a variabilidade, o risco de ruptura e os custos associados ao excesso ou à falta de itens.
+
+O objetivo do estudo é analisar a eficácia e a robustez da política de estoque $(s, S)$ otimizada via modelo paramétrico de Poisson, por meio da simulação de Monte Carlo, visando identificar o comportamento dos custos e do nível de serviço sob incerteza. Para alcançar o objetivo geral, este trabalho propõe-se a comparar a abordagem teórica com a simulada, avaliando os parâmetros $s$ (ponto de pedido) e $S$ (nível alvo) calculados analiticamente sustentam o Nível de Serviço desejado quando submetidos à variância real de uma demanda ($\lambda$) dia a dia. Além de realizar uma análise de sensibilidade paramétrica, foi quantificado o impacto no custo total médio decorrente de variações no lead time ($L$), na demanda($\lambda$) e nos custo de pedido $(K)$, manutenção $(h)$ e falta $(p)$, verificando a elasticidade do modelo a fatores esternos.
+
+A seção 2 apresenta a fundamentação teórica, a metodologia adotada e os materiais utilizados na simulação. A seção 3 expõe os resultados obtidos e suas respectivas análises. Por fim, a seção 4 reúne as considerações finais do estudo e aponta possíveis direções para pesquisas futuras.
+
+## 2 Modelo de Estoque Probabilístico 
+
+Os modelos determinísticos assumem demanda conhecida e constante. O objetivo é minimizar custos de pedido ($K$) e manutenção ($h$), tendo como principal exemplo o modelo de lote econômico de compra (EOQ) . Embora matematicamente simples, os modelos determinísticos são pouco realistas por ignorarem a incerteza da demanda. Já os modelos estocásticos tratam a demanda como uma variável aleatória, focando na minimização do custo total esperado. Embora existam outras modelagens de demanda estocástica, como, por exemplo, exponencial, distribuição normal e binomial negativa, a Poisson é a mais apropriada para a demanda discreta e de baixa a moderada taxa de ocorrência, representando o número de clientes ou pedidos por unidade de tempo. O modelo de período único, problema do jornaleiro, é ideal para itens perecíveis ou sazonais, exigindo uma única decisão de compra, para itens mantidos continuamente, existem modelos de múltiplos períodos, que se diferenciam pelo monitoramento: (i) revisão periódica (P-systems), o estoque é verificado em intervalos fixos ($t$); (ii) revisão contínua (Q-systems), o monitoramento é constante e o pedido é disparado ao atingir o ponto $s$, na política $(s, Q)$ utiliza um lote fixo ($Q$), enquanto a política $(s, S)$, o foco do estudo,  utiliza um lote variável para restaurar o inventário ao nível alvo $S$ quando o nível de estoque cai para $s$ ou abaixo, o tamanho do pedido é, portanto, $Q = S - \text{Posição de Estoque}$.
+
+As hipóteses da política $(s, S)$ neste trabalho incluem:
+
+1. Demanda discreta e estocástica, seguindo um processo de Poisson.
+
+2. Lead time $(L)$ constante e conhecido.
+
+3. Custos de pedido $(K)$, manutenção $(h)$ e falta $(p)$ constantes.
+
+4. Faltas (backorders) são permitidas e atendidas assim que o estoque chega.
+
+A escolha da política de revisão contínua (s, S) não é arbitrária; ela é sustentada por resultados clássicos de otimização estrutural na teoria de estoques. Quando existe um custo fixo de pedido $K>0$, a função de custo total deixa de ser convexa, impossibilitando estratégias simples como políticas base-stock. O trabalho seminal de @Scarf1959 demonstrou que, sob $K$-convexidade, a política ótima para horizontes finitos é caracterizada por dois parâmetros críticos $s$ e $S$.
+
+A demanda é modelada como um processo de Poisson homogêneo (PPH), caracterizado por incrementos independentes e estacionários, ou seja, a contagem de pedidos em um intervalo $t$ é uma variável aleatória $\text{Poisson}(\lambda)$. Pode-se afirmar também que o tempo entre ocorrências (pedidos) é uma variável aleatória com distribuição $\text{Exponencial}(\lambda)$, que tem a propriedade de falta de memória. Essas características, conforme @Kulkarni2011 e @Tijms2003, tornam o Poisson o modelo mais apropriado para processos de chegada discretos e aleatórios, como pedidos em varejo e atacado. Sendo assim, o ponto de pedido $s$ deve cobrir o risco de demanda durante o lead time $L$, então, com a suposição adotada para a demanda, a quantidade de pedidos durante o lead time $L$ é $D_L \sim \text{Poisson}(\lambda L)$.Além disso, o ponto de pedido $s$ é escolhido como o menor inteiro que satisfaz o nível de serviço $\alpha$ (probabilidade de não faltar estoque), sendo $P(D_L \le s) \ge \alpha$ e o estoque de segurança ($SS$) é a diferença $s - E[D_L]$, tal que $s = \min\{k \in \mathbb{N} \mid P(D_L \le k) \ge \alpha\}$.
+
+Aproximamos pelo  EOQ determinístico a magnitude do lote de reposição ($Q$), substituindo a demanda $D$ pela taxa média $\lambda$, $Q^* = \sqrt{ \frac{2\lambda K}{h} }$. Assim, o nível-alvo ($S$) é definido pela soma do ponto de pedido e do lote de reposição: $S^* = s^* + Q^*$.Logo, tendo os parâmetros de custo de pedido $(K)$, custo de manutenção $(h)$ e o custo de falta $(p)$, que é um custo na forma de penalidade caso o produto esteja em falta ao chegar um cliente, podemos usar a função de custo desenvolvida por [@Hadley1963], $C(s, Q) = K \frac{\lambda}{Q} + h \left(\frac{Q}{2} + s - \mu_L\right) + p \frac{\lambda}{Q} E(D_L > s)$, porém, a função é complexa e dificilmente admite soluções fechadas para todos, assim, seguindo [@Banks2010] e @Taha2017, a simulação de Monte Carlo é utilizada para avaliar: (i) o impacto de $h, p, K, \lambda, L$ no custo; (ii) A robustez prevista por @Chen1997. A simulação permite verificar empiricamente se a "insensibilidade" teórica encontrada por [@Chen1997] para a demanda exponencial se mantém para a demanda discreta de Poisson, preenchendo uma lacuna de modelos realísticos.
+
+O presente estudo adota uma abordagem quantitativa híbrida, sendo classificado como um experimento computacional. Tal metodologia foi escolhida por ser a forma mais robusta de analisar sistemas estocásticos, nos quais a interação entre a demanda aleatória e os parâmetros de controle não admite soluções analíticas simples. Assim, o objetivo é avaliar empiricamente a eficiência e a robustez da política $(s, S)$ em diferentes cenários. Para isso, a pesquisa foi conduzida em etapas: modelagem teórica, simulação computacional e análise de sensibilidade.
+
+Como exemplo de aplicação numérica, considerou-se uma situação em que a demanda $\lambda$ é de 20 ocorrências/dia; o lead time $(L)$ é fixado em 4 dias; o horizonte de simulação $(T)$ é de 10.000 períodos (dias); e os custos de pedido $(k)$, manutenção $(h)$ e falta $(p)$ são de 100 por pedido, 1 por unidade/dia e 5 por unidade em falta, respectivamente. Esses parâmetros foram definidos antes da simulação, com valores fundamentados na realidade de empresas. Para o cálculo do ponto de pedido ($s$), com base na demanda durante o lead time ($D_L$), empregou-se a função quantil da distribuição de Poisson ($\text{qpois}$ em R) para garantir um nível de serviço $\alpha$ de 95%.
+
+A simulação foi implementada na linguagem @r_core2024, utilizando os pacotes `dplyr` [@dplyr] para manipulação de dados e `ggplot2` @ggplot2 para visualização gráfica, utilizando o ambiente R Markdown. Uma função em R (`simular_sS`) foi desenvolvida para modelar o ciclo diário de estoque, registrando o estado do estoque e calculando os custos. A avaliação da robustez da política $(s, S)$ foi conduzida por meio de uma análise de sensibilidade paramétrica, variando-se os parâmetros críticos individualmente. Seu objetivo é quantificar as influências de cada fator nos critérios de comparação. Essa abordagem metodológica é inspirada no framework analítico de [@Chen1997], que investigou a sensibilidade do custo total em demandas contínuas. Nosso estudo utiliza a simulação de Monte Carlo para verificar empiricamente essa robustez em um ambiente de demanda discreta de Poisson.
+
+## 3 Resultados
+
+A primeira tabela calcula os valores de $(s^*)$, $(Q^*)$, $(S^*)$ e $(SS)$ do cenário base.
+
+```{r cenario_base, echo=FALSE,  warning=FALSE, message=FALSE}
+library(dplyr)
+library(knitr)
+library(scales)
+library(ggplot2)
+library(viridis)
+library(kableExtra)
+
+# Parâmetros de Custo
+K_base <- 100       # Custo de pedido (K)
+h_base <- 1        # Custo de manutenção (h) por unidade por dia
+p_base <- 5        # Custo de falta (p) por unidade
+
+# Parâmetros de Demanda e Lead Time
+lambda_base <- 20 # Demanda média diária 
+l_base <- 4         # Lead time (L) em dias
+nivel_servico_alpha <- 0.95 # Nível de serviço (alpha) para cálculo de s
+
+
+# 1. Cálculo do Lote Econômico de Compra (Q*)
+# Usamos lambda como a demanda média diária (D)
+q_otimo <- sqrt((2 * lambda_base * K_base) / h_base)
+q_otimo <- round(q_otimo)
+
+# 2. Cálculo do Ponto de Pedido (s)
+# Demanda média durante o lead time
+lambda_l <- lambda_base * l_base
+
+# Encontrar o menor 's' que atinge o nível de serviço alpha
+ponto_pedido_s <- qpois(nivel_servico_alpha, lambda = lambda_l)
+
+# 3. Cálculo do Nível Alvo (S)
+nivel_alvo_S <- ponto_pedido_s + q_otimo
+
+# Estoque de Segurança
+estoque_seguranca <- ponto_pedido_s - lambda_l
+
+# Criar tabela
+tabela_base <- data.frame(
+  `Parâmetro` = c("Lote Econômico (Q*)",
+                  "Ponto de Pedido (s)",
+                  "Nível Alvo (S)",
+                  "Estoque de Segurança"),
+  `Valor` = c(q_otimo,
+              ponto_pedido_s,
+              nivel_alvo_S,
+              estoque_seguranca)
+)
+
+knitr::kable(
+  tabela_base,
+  caption = "Resultados do Cenário Base para a Política (s, S)",
+  align = "c",
+  booktabs = TRUE,
+  escape = TRUE
+)
+
+
+
+```
+
+
+A Tabela 2 quantifica o comportamento de longo prazo esperado da política de estoque otimizada, ainda sob os parâmetros iniciais.
+
+Tabela 2: Métricas de Desempenho do Cenário Base para a Política (s,S)
+
+```{r estrutura_resultados, echo=FALSE,  warning=FALSE, message=FALSE}
+simular_sS <- function(s, S, K, h, p, lambda, L, 
+                          T_sim = 10000, 
+                          burn_in = 250,
+                          seed = NULL) {
+  
+  if (!is.null(seed)) set.seed(seed)
+  
+  # 1. Vetorização da demanda
+  demandas <- rpois(T_sim, lambda)
+  
+  # 2. Estados e histórico
+  estoque_atual <- S
+  estoque_hist <- numeric(T_sim)
+  custo_hist <- numeric(T_sim)
+  pedidos_feitos <- 0
+  
+  # 3. Fila eficiente de pedidos
+  chegada <- integer(0)
+  quantidade <- integer(0)
+  
+  for (t in 1:T_sim) {
+    
+    ## 1. Chegada de pedidos no dia t
+    if (length(chegada) > 0) {
+      idx <- which(chegada == t)
+      if (length(idx) > 0) {
+        estoque_atual <- estoque_atual + sum(quantidade[idx])
+        chegada <- chegada[-idx]
+        quantidade <- quantidade[-idx]
+      }
+    }
+    
+    ## 2. Demanda do dia
+    demanda_t <- demandas[t]
+    
+    estoque_inicio <- estoque_atual
+    
+    ## 3. Atendimento + custos
+    if (estoque_inicio >= demanda_t) {
+      # sem falta
+      estoque_fim <- estoque_inicio - demanda_t
+      estoque_atual <- estoque_fim
+      
+      # cálculo correto do estoque médio diário
+      estoque_medio_dia <- (estoque_inicio + estoque_fim) / 2
+      
+      custo_t <- estoque_medio_dia * h
+      
+    } else {
+      # com falta
+      falta <- demanda_t - max(estoque_inicio,0)
+      
+      custo_t <- falta * p
+      
+      # estoque negativo = backlog
+      estoque_atual <- -falta
+      
+      # estoque positivo no início (se houver)
+      estoque_medio_dia <- max(estoque_inicio,0) / 2
+    }
+    
+    ## 4. Decisão (s,S)
+    if (estoque_atual <= s) {
+      qtd_pedido <- S - estoque_atual
+      
+      chegada <- c(chegada, t + L)
+      quantidade <- c(quantidade, qtd_pedido)
+      
+      custo_t <- custo_t + K
+      pedidos_feitos <- pedidos_feitos + 1
+    }
+    
+    estoque_hist[t] <- estoque_atual
+    custo_hist[t] <- custo_t
+  }
+  
+  # 5. Remover burn-in
+  eff <- (burn_in+1):T_sim
+  T_eff <- length(eff)
+  
+  custo_medio <- mean(custo_hist[eff])
+  estoque_medio <- mean(estoque_hist[eff])
+  prob_falta <- mean(estoque_hist[eff] < 0)
+  
+  I_pos <- mean(pmax(estoque_hist[eff],0))
+  I_neg <- mean(pmax(-estoque_hist[eff],0))
+  
+  list(
+    Custo_Total_Medio = custo_medio,
+    Taxa_Pedidos = pedidos_feitos / T_sim,
+    Estoque_Medio = estoque_medio,
+    Prob_Falta = prob_falta,
+    I_Positivo = I_pos,
+    I_Negativo = I_neg,
+    Faltas_Totais = I_neg,
+    Estoque_Historico = estoque_hist,
+    Custo_Historico = custo_hist
+  )
+}
+# Data frame para armazenar os resultados da análise de sensibilidade
+resultados_sensibilidade <- data.frame(
+  Cenario = character(),
+  Parametro = character(),
+  Valor = double(),
+  Custo_Total_Medio = double(),
+  Taxa_Pedidos = double(),
+  Estoque_Medio = double(),
+  Faltas_Totais = double(),
+  stringsAsFactors = FALSE
+)
+
+simular_rep <- function(R, ...) {
+  resultados <- vector("list", R)
+  
+  for (i in 1:R) {
+    resultados[[i]] <- simular_sS(seed = 100 + i, ...)
+  }
+  
+  extrair <- function(nome) sapply(resultados, function(x) x[[nome]])
+  
+  resumo <- function(v) {
+    m <- mean(v)
+    sd <- sd(v)
+    ci <- 1.96 * sd / sqrt(R)
+    c(media = m, sd = sd, IC95 = ci)
+  }
+  
+  list(
+    Custo = resumo(extrair("Custo_Total_Medio")),
+    Taxa = resumo(extrair("Taxa_Pedidos")),
+    Estoque = resumo(extrair("Estoque_Medio")),
+    ProbFalta = resumo(extrair("Prob_Falta")),
+    Ipos = resumo(extrair("I_Positivo")),
+    Ineg = resumo(extrair("I_Negativo")),
+    FaltasTotais = resumo(extrair("Faltas_Totais"))
+  )
+}
+
+R <- 30
+resultado_base <- simular_rep(
+  R,
+  s = ponto_pedido_s,
+  S = nivel_alvo_S,
+  K = K_base,
+  h = h_base,
+  p = p_base,
+  lambda = lambda_base,
+  L = l_base
+)
+converter_para_tabela <- function(resultado_base) {
+  df <- data.frame(
+    Métrica = names(resultado_base),
+    Média = sapply(resultado_base, function(x) x['media']),
+    DesvioPadrao = sapply(resultado_base, function(x) x['sd']),
+    IC95 = sapply(resultado_base, function(x) x['IC95'])
+  )
+  # Renomear linhas para PT-BR
+  df$Métrica <- c("Custo Total Médio", "Taxa de Pedidos/Dia", "Estoque Médio", 
+                  "Probabilidade de Falta", "Estoque Positivo Médio (I+)", 
+                  "Estoque Negativo Médio (I-)", "Faltas Totais (unid/dia)")
+  return(df)
+}
+
+knitr::kable(converter_para_tabela(resultado_base), digits = 4, row.names = FALSE)
+
+```
+
+Os resultados do cenário base demonstram a robustez da política parametrizada. Observa-se um Nível de Serviço superior a 99,9% (probabilidade de falta de 0,03%), indicando uma proteção quase total contra rupturas. A baixa variabilidade dos resultados (desvio padrão < 1% da média) confirma a estabilidade estatística da simulação. Operacionalmente, o sistema estabilizou-se com pedidos a cada aproximadamente 5 dias, mantendo um estoque médio de 219 unidades para suportar a demanda estocástica.
+
+A seguir são apresentados os resultados consolidados da análise de sensibilidade sob variações nos parametros $K$, $h$, $p$, $L$ e $\lambda$, cada parâmetro foi ajustado proporcionalmente ao cenário base, testando valores reduzidos pela metade e ampliados em duas e quatro vezes, permitindo observar como variações moderadas e extremas afetam o custo médio. Além disso, foram calculados os intervalos de confiança de 95% (IC) que representam a incerteza associada ao custo médio estimado por simulação.
+
+```{r variacao_parametros, echo=FALSE,  warning=FALSE, message=FALSE}
+# --- 1. Definição do Espaço de Parâmetros ---
+parametros <- list(
+  K = c(50, 200, 400),
+  h = c(0.5, 2, 4),
+  p = c(2.5, 10, 20),
+  lambda = c(10, 40, 80),
+  L = c(2,8, 16)
+)
+
+resultados <- list()
+
+
+# Função para recalcular s, Q* e S automaticamente
+recalcular_s_S <- function(lambda, L, K, h, alpha) {
+  
+  # Q* (lote econômico)
+  Q <- round(sqrt((2 * lambda * K) / h))
+  
+  # demanda no lead time
+  lambda_L <- lambda * L
+  
+  # ponto de pedido baseado no nível de serviço α
+  s <- qpois(alpha, lambda_L)
+  
+  # nível alvo
+  S <- s + Q
+  
+  return(list(s = s, S = S, Q = Q))
+}
+
+# ---  Execução dos 5 Cenários de Sensibilidade ---
+
+# Inicializar lista de resultados
+resultados <- list()
+
+# Loop 1: Custo de Pedido (K)
+for (K in parametros$K) {
+  
+  novos_param <- recalcular_s_S(lambda = lambda_base,
+                                L = l_base,
+                                K = K,
+                                h = h_base,
+                                alpha = nivel_servico_alpha)
+  
+  r <- simular_rep(R,
+                   s = novos_param$s,
+                   S = novos_param$S,
+                   K = K,
+                   h = h_base,
+                   p = p_base,
+                   lambda = lambda_base,
+                   L = l_base)
+  
+  resultados <- append(resultados, list(
+    data.frame(Param="K", Valor=K,
+               Custo=r$Custo["media"], IC=r$Custo["IC95"])
+  ))
+}
+
+
+# Loop 2: Custo de Manutenção (h)
+for (h in parametros$h) {
+  
+  novos_param <- recalcular_s_S(lambda = lambda_base,
+                                L = l_base,
+                                K = K_base,
+                                h = h,
+                                alpha = nivel_servico_alpha)
+  
+  r <- simular_rep(R,
+                   s = novos_param$s,
+                   S = novos_param$S,
+                   K = K_base,
+                   h = h,
+                   p = p_base,
+                   lambda = lambda_base,
+                   L = l_base)
+  
+  resultados <- append(resultados, list(
+    data.frame(Param="h", Valor=h,
+               Custo=r$Custo["media"], IC=r$Custo["IC95"])
+  ))
+}
+
+
+# Loop 3: Custo de Falta (p)
+for (p in parametros$p) {
+  
+  novos_param <- recalcular_s_S(lambda = lambda_base,
+                                L = l_base,
+                                K = K_base,
+                                h = h_base,
+                                alpha = nivel_servico_alpha)
+  
+  # ajuste opcional baseado em p
+  novos_param$s <- novos_param$s + round(log(p))
+  novos_param$S <- novos_param$s + novos_param$Q
+  
+  r <- simular_rep(R,
+                   s = novos_param$s,
+                   S = novos_param$S,
+                   K = K_base,
+                   h = h_base,
+                   p = p,
+                   lambda = lambda_base,
+                   L = l_base)
+  
+  resultados <- append(resultados, list(
+    data.frame(Param="p", Valor=p,
+               Custo=r$Custo["media"], IC=r$Custo["IC95"])
+  ))
+}
+
+# Loop 4: Demanda (lambda)
+for (lam in parametros$lambda) {
+  
+  novos_param <- recalcular_s_S(lambda = lam,
+                                L = l_base,
+                                K = K_base,
+                                h = h_base,
+                                alpha = nivel_servico_alpha)
+  
+  r <- simular_rep(R,
+                   s = novos_param$s,
+                   S = novos_param$S,
+                   K = K_base,
+                   h = h_base,
+                   p = p_base,
+                   lambda = lam,
+                   L = l_base)
+  
+  resultados <- append(resultados, list(
+    data.frame(Param="lambda", Valor=lam,
+               Custo=r$Custo["media"], IC=r$Custo["IC95"])
+  ))
+}
+
+
+# Loop 5: Lead Time (L)
+for (L in parametros$L) {
+  
+  novos_param <- recalcular_s_S(lambda = lambda_base,
+                                L = L,
+                                K = K_base,
+                                h = h_base,
+                                alpha = nivel_servico_alpha)
+  
+  r <- simular_rep(R,
+                   s = novos_param$s,
+                   S = novos_param$S,
+                   K = K_base,
+                   h = h_base,
+                   p = p_base,
+                   lambda = lambda_base,
+                   L = L)
+  
+  resultados <- append(resultados, list(
+    data.frame(Param="L", Valor=L,
+               Custo=r$Custo["media"], IC=r$Custo["IC95"])
+  ))
+}
+
+resultados <- lapply(resultados, function(df) {
+  rownames(df) <- NULL
+  df
+})
+
+df_sens <- bind_rows(resultados)
+
+df_final_formatado <- df_sens %>%
+  mutate(
+    Custo = formatC(Custo, format = "f", big.mark = ".", decimal.mark = ",", digits = 2),
+    IC = formatC(IC, format = "f", big.mark = ".", decimal.mark = ",", digits = 2)
+  )
+
+# Tabela Turbinada para os Resultados Consolidados
+df_final_formatado %>%
+  kbl(
+    caption = "Resultados Consolidados da Análise de Sensibilidade da Política (s, S)",
+    col.names = c("Parâmetro", "Valor Testado", "Custo Médio (R$)", "IC 95% (± R$)"),
+    booktabs = TRUE,
+    align = "lccc" # Alinhamento: Left, Center, Center, Center
+  ) %>%
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    position = "center",
+    full_width = FALSE
+  ) %>%
+  collapse_rows(columns = 1, valign = "middle") %>% 
+  row_spec(0, bold = TRUE) 
+# --- Tabela Auxiliar de Parâmetros Recalculados ---
+
+tabela_parametros <- data.frame()
+
+# 1) K
+for (K in parametros$K) {
+  novo <- recalcular_s_S(lambda_base, l_base, K, h_base, nivel_servico_alpha)
+  tabela_parametros <- rbind(tabela_parametros,
+                             data.frame(Parametro="K", Valor=K,
+                                        s=novo$s, S=novo$S, Q=novo$Q))
+}
+
+# 2) h
+for (h in parametros$h) {
+  novo <- recalcular_s_S(lambda_base, l_base, K_base, h, nivel_servico_alpha)
+  tabela_parametros <- rbind(tabela_parametros,
+                             data.frame(Parametro="h", Valor=h,
+                                        s=novo$s, S=novo$S, Q=novo$Q))
+}
+
+# 3) p (com ajuste opcional)
+for (p in parametros$p) {
+  novo <- recalcular_s_S(lambda_base, l_base, K_base, h_base, nivel_servico_alpha)
+  novo$s <- novo$s + round(log(p))
+  novo$S <- novo$s + novo$Q
+  
+  tabela_parametros <- rbind(tabela_parametros,
+                             data.frame(Parametro="p", Valor=p,
+                                        s=novo$s, S=novo$S, Q=novo$Q))
+}
+
+# 4) lambda
+for (lam in parametros$lambda) {
+  novo <- recalcular_s_S(lam, l_base, K_base, h_base, nivel_servico_alpha)
+  tabela_parametros <- rbind(tabela_parametros,
+                             data.frame(Parametro="lambda", Valor=lam,
+                                        s=novo$s, S=novo$S, Q=novo$Q))
+}
+
+# 5) L
+for (L in parametros$L) {
+  novo <- recalcular_s_S(lambda_base, L, K_base, h_base, nivel_servico_alpha)
+  tabela_parametros <- rbind(tabela_parametros,
+                             data.frame(Parametro="L", Valor=L,
+                                        s=novo$s, S=novo$S, Q=novo$Q))
+}
+
+
+
+tabela_parametros %>%
+  kbl(
+    caption = "Parâmetros Recalculados (s, S, Q) para Análise de Sensibilidade",
+    booktabs = TRUE,
+    align = "c" # Centraliza todas as colunas
+  ) %>%
+  
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    position = "center",
+    full_width = FALSE
+  ) %>%
+  
+ 
+  collapse_rows(columns = 1, valign = "middle") %>%
+  row_spec(0, bold = TRUE)
+
+```
+
+
+A tabela 4 mostra os novos valores ótimos $s$, $S$ e $Q$, recalculados para cada variação dos parãmetros,em seguida,foi gerado um gráfico, para melhor visualização, de cada parâmetro a fim de ilustrar o comportamento e a sensibilidade do modelo diante das variações. 
+
+
+```{r graficos, fig.width=8, fig.height=6, fig.align='center', echo=FALSE, warning=FALSE, message=FALSE}
+ggsave("grafico_sensibilidade.png", width = 8, height = 6, dpi = 300)
+
+ggplot(df_sens, aes(x = Valor, y = Custo, color = Param)) +
+  geom_line(size = 1.3) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = Custo - IC, ymax = Custo + IC), 
+                width = 0.15, size = 0.8) +
+  facet_wrap(~ Param, scales = "free_x", ncol = 2) +
+  scale_color_viridis_d(option = "D") +
+  theme_bw(base_size = 15) +
+  theme(
+    strip.background = element_rect(fill = "grey95"),
+    strip.text = element_text(face = "bold", size = 14),
+    legend.position = "none",
+    plot.title = element_text(face = "bold", size = 18),
+    axis.title = element_text(size = 15)
+  ) +
+  labs(
+    title = "Gráfico 1: Análise de Sensibilidade da Política (s, S)",
+    x = "Valor do Parâmetro",
+    y = "Custo Total Médio"
+  )
+
+```
+
+A análise de sensibilidade mostra que cada parâmetro do modelo $(s, S)$ afeta diretamente o equilíbrio entre custos e nível de estoque. Como neste estudo os valores ótimos de $s$ e $S$ são recalculados a cada cenário, o sistema se ajusta estruturalmente às mudanças nos parâmetros, refletindo seus efeitos tanto nos custos quanto nos níveis de estoque. O custo de falta ($p$) eleva o custo total médio apenas de forma moderada, pois o aumento de $p$ faz com que o valor ótimo de $s$ cresça, reduzindo a frequência de rupturas e atenuando seu impacto no custo final. O custo de manutenção ($h$) aumenta o custo total porque, mesmo após o recálculo de $s$ e $S$, níveis de estoque mais altos continuam penalizados por $h$, tornando o modelo altamente sensível a esse parâmetro. A demanda média $\lambda$ exerce influência significativa: como $D_L \sim \text{Poisson}(\lambda L)$, aumentos em $\lambda$ ampliam a variabilidade e elevam os valores ótimos de $s$ e $S$, resultando em maiores estoques de segurança e maiores custos. O lead time ($L$) é o parâmetro mais crítico, pois sua ampliação aumenta o horizonte de incerteza da demanda, gerando aumentos expressivos em $s$, $S$ e no custo total, mesmo após o ajuste ótimo dos parâmetros. Por fim, o custo fixo de pedido ($K$) afeta principalmente o lote econômico $Q$: valores baixos levam a $Q$ reduzidos e reposições mais frequentes, enquanto valores elevados ampliam $Q$, elevando o estoque médio e o custo total. Assim, os resultados mostram que, ao recalcular $(s, S)$ em cada cenário, é possível observar a forma como cada parâmetro reorganiza a estrutura da política, revelando sua influência direta sobre os custos, o nível de estoque e a robustez operacional da política $(s, S)$.
+
+## 4 Conclusão 
+
+O estudo integrou a teoria do processo de Poisson, a formulação do modelo de estoque $(s,S)$ e a análise empírica por simulação. A revisão teórica reforçou os fundamentos estocásticos e estruturais que justificam a política $(s,S)$, como incrementos independentes, distribuição de Poisson da demanda e ciclos de renovação. De forma geral, as simulações confirmam a robustez do modelo $(s,S)$ e sua sensibilidade a parâmetros ligados à variabilidade da demanda e ao custo de manutenção, demonstrando que a política $(s, S)$ é altamente sensível a variações nos parâmetros, e que a otimização de $s$ (proteção contra falta) e $Q$ (diluição do custo de pedido) deve ser feita de forma integrada para minimizar o custo total esperado, conforme sugerido por [@Chen1997]. 
+
+Os próximos passos para a continuidade da pesquisa incluem trabalhar com o lead time estocástico, investigar a política $(s, S)$ sob a hipótese de lead time estocástico, o que aumentaria a complexidade e a aderência à realidade. Além disso, analisar o estudo em modelos não homogêneos, onde a taxa de demanda $\lambda(t)$ varia sazonalmente ou ao longo do dia, exigindo uma política de estoque dinâmica.
+
+O arquivo completo, contendo todos os códigos de simulação e de geração de gráficos, está disponível publicamente em: https://github.com/BrunaCruz0
+
+## Referências
